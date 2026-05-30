@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlipIQ — AI Betting Analyst</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b0f;
+    --bg2: #0d1117;
+    --bg3: #131920;
+    --border: #1e2a35;
+    --accent: #00e5a0;
+    --accent2: #ff6b35;
+    --accent3: #4d9fff;
+    --text: #e8edf2;
+    --muted: #5a6a7a;
+    --danger: #ff4444;
+    --warn: #ffb347;
+    --good: #00e5a0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  header {
+    padding: 40px 0 30px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 36px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: -1px;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    text-transform: uppercase;
+  }
+
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+    width: fit-content;
+  }
+
+  .mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+  }
+
+  .panel-label {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    padding: 16px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .legs-area { display: flex; flex-direction: column; gap: 10px; }
+
+  .leg-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  input[type="text"], input[type="number"] {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    padding: 10px 14px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  .remove-leg {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 34px; height: 34px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .remove-leg:hover { border-color: var(--danger); color: var(--danger); }
+
+  .add-leg-btn {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    padding: 10px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .add-leg-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .stake-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .field-group label {
+    display: block;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .analyze-btn {
+    width: 100%;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 20px;
+  }
+
+  .analyze-btn:hover:not(:disabled) {
+    background: #00ffb3;
+    transform: translateY(-1px);
+  }
+
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+  }
+
+  .loading.active { display: block; }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .results { display: none; animation: fadeUp 0.4s ease; }
+  .results.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .verdict-badge {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    padding: 8px 20px;
+    letter-spacing: 1px;
+  }
+
+  .verdict-badge.strong { background: var(--good); color: var(--bg); }
+  .verdict-badge.moderate { background: var(--warn); color: var(--bg); }
+  .verdict-badge.weak { background: var(--danger); color: #fff; }
+  .verdict-badge.neutral { background: var(--border); color: var(--text); }
+
+  .result-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 22px 24px;
+    margin-bottom: 14px;
+  }
+
+  .result-block .block-title {
+    font-size: 0.62rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .result-block .content {
+    font-size: 0.82rem;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  .leg-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: start;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .leg-card:last-child { border-bottom: none; }
+
+  .leg-num {
+    font-size: 0.7rem;
+    color: var(--muted);
+    padding-top: 2px;
+    min-width: 24px;
+  }
+
+  .leg-info .leg-match { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+  .leg-info .leg-pick { font-size: 0.75rem; color: var(--muted); }
+
+  .leg-signal {
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .leg-signal.keep { background: rgba(0,229,160,0.15); color: var(--good); border: 1px solid rgba(0,229,160,0.3); }
+  .leg-signal.risky { background: rgba(255,179,71,0.15); color: var(--warn); border: 1px solid rgba(255,179,71,0.3); }
+  .leg-signal.drop { background: rgba(255,68,68,0.15); color: var(--danger); border: 1px solid rgba(255,68,68,0.3); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .stat-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-box .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--accent);
+    display: block;
+  }
+
+  .stat-box .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+    display: block;
+  }
+
+  .error-box {
+    display: none;
+    background: rgba(255,68,68,0.08);
+    border: 1px solid rgba(255,68,68,0.3);
+    padding: 16px 20px;
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 16px;
+  }
+
+  .error-box.active { display: block; }
+
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* Rate limit notice */
+  .rate-notice {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">Slip<span>IQ</span></div>
+    <div class="badge">AI Betting Analyst</div>
+  </header>
+
+  <!-- Mode Toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btnSlip" onclick="setMode('slip')">Slip Analyzer</button>
+    <button class="mode-btn" id="btnSingle" onclick="setMode('single')">Single Match</button>
+  </div>
+
+  <!-- SLIP MODE -->
+  <div id="slipMode">
+    <div class="panel">
+      <div class="panel-label">Slip Legs</div>
+      <div class="legs-area" id="legsArea"></div>
+      <button class="add-leg-btn" onclick="addLeg()">+ ADD LEG</button>
+      <hr class="divider">
+      <div class="stake-row">
+        <div class="field-group">
+          <label>Stake (₦)</label>
+          <input type="number" id="stakeInput" placeholder="e.g. 5000" min="0" />
+        </div>
+        <div class="field-group">
+          <label>Platform</label>
+          <input type="text" id="platformInput" placeholder="e.g. SportyBet" />
+        </div>
+      </div>
+      <button class="analyze-btn" onclick="analyzeSlip()">Analyze Slip</button>
+      <div class="rate-notice">20 free analyses per day</div>
+    </div>
+  </div>
+
+  <!-- SINGLE MATCH MODE -->
+  <div id="singleMode" style="display:none;">
+    <div class="panel">
+      <div class="panel-label">Match Details</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="field-group">
+          <label>Home Team</label>
+          <input type="text" id="homeTeam" placeholder="e.g. Arsenal" />
+        </div>
+        <div class="field-group">
+          <label>Away Team</label>
+          <input type="text" id="awayTeam" placeholder="e.g. Chelsea" />
+        </div>
+        <div class="field-group">
+          <label>League / Competition</label>
+          <input type="text" id="leagueName" placeholder="e.g. Premier League" />
+        </div>
+        <div class="field-group">
+          <label>Your Pick / Market</label>
+          <input type="text" id="yourPick" placeholder="e.g. Home Win, BTTS, Over 2.5" />
+        </div>
+        <div class="field-group">
+          <label>Odds</label>
+          <input type="number" id="matchOdds" placeholder="e.g. 2.10" step="0.01" min="1" />
+        </div>
+        <div class="field-group">
+          <label>Context (optional)</label>
+          <textarea id="matchContext" placeholder="Recent form, injuries, H2H, etc."></textarea>
+        </div>
+      </div>
+      <button class="analyze-btn" onclick="analyzeSingle()">Analyze Match</button>
+      <div class="rate-notice">20 free analyses per day</div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    ANALYZING...
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Results -->
+  <div class="results" id="results"></div>
+
+</div>
+
+<script>
+  // ── CONFIG — update this after deploying your Render backend ──
+  const BACKEND_URL = "https://YOUR-APP-NAME.onrender.com";
+
+  let mode = 'slip';
+  let legCount = 0;
+
+  window.onload = () => { addLeg(); addLeg(); addLeg(); };
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById('slipMode').style.display = m === 'slip' ? 'block' : 'none';
+    document.getElementById('singleMode').style.display = m === 'single' ? 'block' : 'none';
+    document.getElementById('btnSlip').className = 'mode-btn' + (m === 'slip' ? ' active' : '');
+    document.getElementById('btnSingle').className = 'mode-btn' + (m === 'single' ? ' active' : '');
+    hideResults();
+  }
+
+  function addLeg() {
+    legCount++;
+    const id = legCount;
+    const area = document.getElementById('legsArea');
+    const row = document.createElement('div');
+    row.className = 'leg-row';
+    row.id = `leg-${id}`;
+    row.innerHTML = `
+      <input type="text" placeholder="Match (e.g. Man Utd vs Liverpool)" id="leg-match-${id}" />
+      <input type="text" placeholder="Pick & Odds (e.g. Over 2.5 @ 1.85)" id="leg-pick-${id}" />
+      <button class="remove-leg" onclick="removeLeg(${id})">×</button>
+    `;
+    area.appendChild(row);
+  }
+
+  function removeLeg(id) {
+    const el = document.getElementById(`leg-${id}`);
+    if (el) el.remove();
+  }
+
+  function getLegs() {
+    const rows = document.getElementById('legsArea').querySelectorAll('.leg-row');
+    const legs = [];
+    rows.forEach(row => {
+      const idMatch = row.id.replace('leg-', '');
+      const match = document.getElementById(`leg-match-${idMatch}`)?.value.trim();
+      const pick = document.getElementById(`leg-pick-${idMatch}`)?.value.trim();
+      if (match && pick) legs.push({ match, pick });
+    });
+    return legs;
+  }
+
+  function showLoading() {
+    document.getElementById('loading').className = 'loading active';
+    document.getElementById('results').className = 'results';
+    document.getElementById('errorBox').className = 'error-box';
+  }
+
+  function hideResults() {
+    document.getElementById('loading').className = 'loading';
+    document.getElementById('results').className = 'results';
+    document.getElementById('errorBox').className = 'error-box';
+  }
+
+  function showError(msg) {
+    document.getElementById('loading').className = 'loading';
+    const eb = document.getElementById('errorBox');
+    eb.className = 'error-box active';
+    eb.textContent = msg;
+  }
+
+  async function callBackend(prompt) {
+    const res = await fetch(`${BACKEND_URL}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+    return data.result;
+  }
+
+  async function analyzeSlip() {
+    const legs = getLegs();
+    if (legs.length === 0) return showError('Add at least one leg to analyze.');
+    const stake = document.getElementById('stakeInput').value || 'not specified';
+    const platform = document.getElementById('platformInput').value || 'not specified';
+    const legsText = legs.map((l, i) => `Leg ${i+1}: ${l.match} — Pick: ${l.pick}`).join('\n');
+
+    const prompt = `You are a sharp sports betting analyst. Analyze this betting slip and respond ONLY in this exact JSON format (no markdown, no explanation outside the JSON):
+
+{
+  "verdict": "STRONG" | "MODERATE" | "WEAK",
+  "overall_assessment": "2-3 sentence summary of the slip quality",
+  "combined_probability": "estimated combined win probability as percentage e.g. 23%",
+  "combined_odds": "estimated combined decimal odds",
+  "potential_return": "potential return if stake is known, else null",
+  "legs": [
+    {
+      "match": "match name",
+      "pick": "pick description",
+      "signal": "KEEP" | "RISKY" | "DROP",
+      "reasoning": "one sentence reason"
+    }
+  ],
+  "recommendation": "Concrete action advice in 2 sentences.",
+  "kelly_fraction": "suggested fraction of bankroll e.g. 1-2% or skip"
+}
+
+Slip details:
+${legsText}
+Stake: ₦${stake}
+Platform: ${platform}
+
+Be direct, sharp, and honest. Flag weak legs clearly.`;
+
+    showLoading();
+    try {
+      const raw = await callBackend(prompt);
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const data = JSON.parse(clean);
+      renderSlipResults(data, legs, stake);
+    } catch (e) {
+      showError('Analysis failed: ' + e.message);
+    }
+  }
+
+  function renderSlipResults(data, legs, stake) {
+    document.getElementById('loading').className = 'loading';
+    const results = document.getElementById('results');
+    results.className = 'results active';
+
+    const verdictClass = data.verdict === 'STRONG' ? 'strong' : data.verdict === 'MODERATE' ? 'moderate' : 'weak';
+
+    let returnStr = data.potential_return || '—';
+    if (stake && stake !== 'not specified' && data.combined_odds) {
+      const odds = parseFloat(data.combined_odds);
+      const s = parseFloat(stake);
+      if (!isNaN(odds) && !isNaN(s)) returnStr = `₦${(s * odds).toLocaleString('en-NG', {maximumFractionDigits:0})}`;
+    }
+
+    const legsHTML = (data.legs || []).map((leg, i) => {
+      const sigClass = leg.signal === 'KEEP' ? 'keep' : leg.signal === 'DROP' ? 'drop' : 'risky';
+      return `
+        <div class="leg-card">
+          <div class="leg-num">${i+1}</div>
+          <div class="leg-info">
+            <div class="leg-match">${leg.match}</div>
+            <div class="leg-pick">${leg.pick}</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:6px;">${leg.reasoning || ''}</div>
+          </div>
+          <div class="leg-signal ${sigClass}">${leg.signal}</div>
+        </div>`;
+    }).join('');
+
+    results.innerHTML = `
+      <div class="result-header">
+        <div style="font-size:0.65rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;">Slip Verdict</div>
+        <div class="verdict-badge ${verdictClass}">${data.verdict}</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><span class="stat-val">${data.combined_odds || '—'}</span><span class="stat-label">Combined Odds</span></div>
+        <div class="stat-box"><span class="stat-val">${data.combined_probability || '—'}</span><span class="stat-label">Win Probability</span></div>
+        <div class="stat-box"><span class="stat-val" style="font-size:1rem;">${returnStr}</span><span class="stat-label">Potential Return</span></div>
+      </div>
+      <div class="result-block"><div class="block-title">Assessment</div><div class="content">${data.overall_assessment || '—'}</div></div>
+      <div class="result-block"><div class="block-title">Leg-by-Leg Breakdown</div>${legsHTML}</div>
+      <div class="result-block"><div class="block-title">Recommendation</div><div class="content">${data.recommendation || '—'}</div></div>
+      <div class="result-block"><div class="block-title">Kelly Sizing</div><div class="content">${data.kelly_fraction || '—'}</div></div>
+    `;
+  }
+
+  async function analyzeSingle() {
+    const home = document.getElementById('homeTeam').value.trim();
+    const away = document.getElementById('awayTeam').value.trim();
+    const league = document.getElementById('leagueName').value.trim();
+    const pick = document.getElementById('yourPick').value.trim();
+    const odds = document.getElementById('matchOdds').value.trim();
+    const context = document.getElementById('matchContext').value.trim();
+
+    if (!home || !away || !pick) return showError('Fill in Home Team, Away Team, and Your Pick.');
+
+    const prompt = `You are a sharp sports betting analyst. Analyze this single match bet and respond ONLY in this JSON format (no markdown, no extra text):
+
+{
+  "verdict": "BACK" | "SKIP" | "VALUE" | "AVOID",
+  "confidence": "LOW" | "MEDIUM" | "HIGH",
+  "summary": "2-3 sentence analysis of this bet",
+  "implied_probability": "implied probability from the odds as percentage",
+  "estimated_true_probability": "your estimated true probability",
+  "value_assessment": "is there value here? one sentence",
+  "key_factors_for": ["factor 1", "factor 2"],
+  "key_factors_against": ["factor 1", "factor 2"],
+  "recommendation": "1-2 sentence concrete advice",
+  "alternative_market": "suggest a better market on this match if any, else null"
+}
+
+Match: ${home} vs ${away}
+League: ${league || 'Unknown'}
+Pick: ${pick}
+Odds: ${odds || 'not provided'}
+${context ? `Context: ${context}` : ''}`;
+
+    showLoading();
+    try {
+      const raw = await callBackend(prompt);
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const data = JSON.parse(clean);
+      renderSingleResults(data, home, away, pick, odds);
+    } catch (e) {
+      showError('Analysis failed: ' + e.message);
+    }
+  }
+
+  function renderSingleResults(data, home, away, pick, odds) {
+    document.getElementById('loading').className = 'loading';
+    const results = document.getElementById('results');
+    results.className = 'results active';
+
+    const verdictColors = { 'BACK': 'strong', 'VALUE': 'strong', 'SKIP': 'moderate', 'AVOID': 'weak' };
+    const verdictClass = verdictColors[data.verdict] || 'neutral';
+    const confColor = data.confidence === 'HIGH' ? 'var(--good)' : data.confidence === 'MEDIUM' ? 'var(--warn)' : 'var(--danger)';
+
+    const factorsFor = (data.key_factors_for || []).map(f =>
+      `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.8rem;">✓ ${f}</div>`).join('');
+    const factorsAgainst = (data.key_factors_against || []).map(f =>
+      `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.8rem;">✗ ${f}</div>`).join('');
+
+    results.innerHTML = `
+      <div class="result-header">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;">${home} vs ${away}</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">${pick}${odds ? ` @ ${odds}` : ''}</div>
+        </div>
+        <div class="verdict-badge ${verdictClass}">${data.verdict}</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><span class="stat-val">${data.implied_probability || '—'}</span><span class="stat-label">Implied Prob</span></div>
+        <div class="stat-box"><span class="stat-val">${data.estimated_true_probability || '—'}</span><span class="stat-label">True Prob Est</span></div>
+        <div class="stat-box"><span class="stat-val" style="color:${confColor};font-size:1rem;">${data.confidence || '—'}</span><span class="stat-label">Confidence</span></div>
+      </div>
+      <div class="result-block"><div class="block-title">Analysis</div><div class="content">${data.summary || '—'}</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div class="result-block" style="margin-bottom:0;"><div class="block-title">For</div>${factorsFor || '<div style="color:var(--muted);font-size:0.8rem;">None identified</div>'}</div>
+        <div class="result-block" style="margin-bottom:0;"><div class="block-title">Against</div>${factorsAgainst || '<div style="color:var(--muted);font-size:0.8rem;">None identified</div>'}</div>
+      </div>
+      <div class="result-block"><div class="block-title">Value Assessment</div><div class="content">${data.value_assessment || '—'}</div></div>
+      <div class="result-block"><div class="block-title">Recommendation</div><div class="content">${data.recommendation || '—'}</div></div>
+      ${data.alternative_market ? `<div class="result-block"><div class="block-title">Consider Instead</div><div class="content">${data.alternative_market}</div></div>` : ''}
+    `;
+  }
+</script>
+</body>
+</html>
